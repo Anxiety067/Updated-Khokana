@@ -14,7 +14,8 @@ function App() {
     parcelLayer: true,
     parcelLayer2019: false,
     buildingFootprint: false,
-    historicalPlaces: false
+    historicalPlaces: false,
+    nullYearParcel: true
   });
 
   const [selectedFilters, setSelectedFilters] = useState({
@@ -81,6 +82,7 @@ function App() {
                 parcelLayer2019Visible={vectorLayers.parcelLayer2019}
                 buildingFootprintVisible={vectorLayers.buildingFootprint}
                 historicalPlacesVisible={vectorLayers.historicalPlaces}
+                nullYearParcelVisible={vectorLayers.nullYearParcel}
                 activeFilters={appliedFilters} 
               />
               <Statistics 

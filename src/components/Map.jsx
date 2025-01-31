@@ -9,8 +9,9 @@ const GALLI_MAPS_STYLE_URL =
   "https://map-init.gallimap.com/styles/light/style.json?accessToken=4ce1a22b-3b8b-4eeb-ba2f-51cb7448f559";
 const WARD_BOUNDARY_GEOJSON = "/merge_ward.json";
 const ROAD_NETWORK_GEOJSON = "/Road.json";
-const PARCEL_GEOJSON = "/merge.geojson";
-const PARCEL_2019_GEOJSON = "/2019_final.geojson"; 
+const PARCEL_GEOJSON = "/2016_final.geojson";
+const PARCEL_2019_GEOJSON = "/2019_final.geojson";
+const NULL_YEAR_GEOJSON = "/Null_year.geojson";
 const BUILDING_FOOTPRINT_GEOJSON = "/building_khokana.json";
 const WATER_RESOURCES_GEOJSON = "/water.json";
 const HISTORICAL_PLACES_GEOJSON = "/historical.geojson";
@@ -19,10 +20,7 @@ const KHOKANA_CONFIG = {
   sourceLayer: "public.khokana",
   center: [85.29322814941406, 27.641535758972168],
   bounds: [
-    85.2823257446289,
-    27.62953758239746,
-    85.30413055419922,
-    27.653533935546875,
+    85.2823257446289, 27.62953758239746, 85.30413055419922, 27.653533935546875,
   ],
   minZoom: 0,
   maxZoom: 22,
@@ -32,13 +30,10 @@ const SAINBU_CONFIG = {
   sourceLayer: "public.sainbu",
   center: [85.30310440063477, 27.648791313171387],
   bounds: [
-    85.29135131835938,
-    27.631587982177734,
-    85.31485748291016,
-    27.66599464416504
+    85.29135131835938, 27.631587982177734, 85.31485748291016, 27.66599464416504,
   ],
   minZoom: 0,
-  maxZoom: 22
+  maxZoom: 22,
 };
 
 const BUNGAMATI_CONFIG = {
@@ -46,10 +41,7 @@ const BUNGAMATI_CONFIG = {
   sourceLayer: "public.bungamati",
   center: [85.30072021484375, 27.61996555328369],
   bounds: [
-    85.2900161743164,
-    27.60451889038086,
-    85.3114242553711,
-    27.635412216186523,
+    85.2900161743164, 27.60451889038086, 85.3114242553711, 27.635412216186523,
   ],
   minZoom: 0,
   maxZoom: 22,
@@ -111,6 +103,7 @@ const Map = ({
   buildingFootprintVisible,
   waterResourcesVisible,
   historicalPlacesVisible,
+  nullYearParcelVisible,
   activeFilters,
 }) => {
   const mapContainer = useRef(null);
@@ -136,7 +129,7 @@ const Map = ({
         "poi_z16",
         "poi_z17",
         "poi_z18",
-        "poi_transit"
+        "poi_transit",
       ];
 
       layersToHide.forEach((layerId) => {
@@ -146,35 +139,30 @@ const Map = ({
       });
 
       // Add temple POI layer
-      if (map.getStyle() && !map.getLayer('poi_temple')) {
+      if (map.getStyle() && !map.getLayer("poi_temple")) {
         map.addLayer({
-          "filter": [
-            "all",
-            ["==", "class", "place_of_worship"]
-          ],
-          "id": "poi_temple",
-          "layout": {
+          filter: ["all", ["==", "class", "place_of_worship"]],
+          id: "poi_temple",
+          layout: {
             "icon-image": "{icon_type}",
             "icon-size": 0.7,
             "text-anchor": "top",
             "text-field": "{name}",
-            "text-font": [
-              "Roboto Condensed Italic"
-            ],
+            "text-font": ["Roboto Condensed Italic"],
             "text-offset": [0, 0.9],
             "text-size": 10,
             "text-transform": "uppercase",
-            "visibility": "visible"
+            visibility: "visible",
           },
-          "minzoom": 14,
-          "paint": {
+          minzoom: 14,
+          paint: {
             "text-halo-blur": 0.5,
             "text-halo-color": "#ffffff",
-            "text-halo-width": 1
+            "text-halo-width": 1,
           },
-          "source": "gallitiles",
+          source: "gallitiles",
           "source-layer": "poi",
-          "type": "symbol"
+          type: "symbol",
         });
       }
     });
@@ -236,26 +224,32 @@ const Map = ({
       );
     }
   }, [isSatellite, mapInstance]);
-  
+
   // Watch for cadastral map filter changes
   useEffect(() => {
     // Guard clause - only proceed if mapInstance exists
     if (!mapInstance) return;
-  
+
     const cadastralSourceId = "cadastralMapSource";
     const cadastralLayerId = "cadastralMapLayer";
-  
+
     // Safe remove function with additional checks
     const safeRemoveCadastralLayers = () => {
       try {
         // Check if map instance still exists
         if (mapInstance && !mapInstance._removed) {
           // Check if layer exists before trying to remove it
-          if (mapInstance.getStyle() && mapInstance.getLayer(cadastralLayerId)) {
+          if (
+            mapInstance.getStyle() &&
+            mapInstance.getLayer(cadastralLayerId)
+          ) {
             mapInstance.removeLayer(cadastralLayerId);
           }
           // Check if source exists before trying to remove it
-          if (mapInstance.getStyle() && mapInstance.getSource(cadastralSourceId)) {
+          if (
+            mapInstance.getStyle() &&
+            mapInstance.getSource(cadastralSourceId)
+          ) {
             mapInstance.removeSource(cadastralSourceId);
           }
         }
@@ -263,12 +257,12 @@ const Map = ({
         console.log("Safe removal of cadastral layers failed:", error);
       }
     };
-  
+
     // Cleanup function to handle component unmounting
     const cleanup = () => {
       safeRemoveCadastralLayers();
     };
-  
+
     // Add new layers based on selected cadastral map
     const addCadastralLayers = async () => {
       try {
@@ -284,20 +278,20 @@ const Map = ({
                 maxzoom: KHOKANA_CONFIG.maxZoom,
               });
             }
-  
+
             if (!mapInstance.getLayer(cadastralLayerId)) {
               mapInstance.addLayer({
                 id: cadastralLayerId,
                 type: "line",
                 source: cadastralSourceId,
-                'source-layer': KHOKANA_CONFIG.sourceLayer,
+                "source-layer": KHOKANA_CONFIG.sourceLayer,
                 paint: {
                   "line-color": "#000000",
                   "line-width": 1,
                 },
               });
             }
-  
+
             mapInstance.fitBounds(KHOKANA_CONFIG.bounds, {
               padding: 50,
               maxZoom: 16,
@@ -312,26 +306,26 @@ const Map = ({
                 tiles: [SAINBU_CONFIG.tileUrl],
                 bounds: SAINBU_CONFIG.bounds,
                 minzoom: SAINBU_CONFIG.minZoom,
-                maxzoom: SAINBU_CONFIG.maxZoom
+                maxzoom: SAINBU_CONFIG.maxZoom,
               });
             }
-  
+
             if (!mapInstance.getLayer(cadastralLayerId)) {
               mapInstance.addLayer({
                 id: cadastralLayerId,
                 type: "line",
                 source: cadastralSourceId,
-                'source-layer': SAINBU_CONFIG.sourceLayer,
+                "source-layer": SAINBU_CONFIG.sourceLayer,
                 paint: {
                   "line-color": "#000000",
-                  "line-width": 1
-                }
+                  "line-width": 1,
+                },
               });
             }
-  
+
             mapInstance.fitBounds(SAINBU_CONFIG.bounds, {
               padding: 50,
-              maxZoom: 16
+              maxZoom: 16,
             });
           }
         } else if (activeFilters.cadastralMap === "bungamati") {
@@ -346,20 +340,20 @@ const Map = ({
                 maxzoom: BUNGAMATI_CONFIG.maxZoom,
               });
             }
-  
+
             if (!mapInstance.getLayer(cadastralLayerId)) {
               mapInstance.addLayer({
                 id: cadastralLayerId,
                 type: "line",
                 source: cadastralSourceId,
-                'source-layer': BUNGAMATI_CONFIG.sourceLayer,
+                "source-layer": BUNGAMATI_CONFIG.sourceLayer,
                 paint: {
                   "line-color": "#000000",
                   "line-width": 1,
                 },
               });
             }
-  
+
             mapInstance.fitBounds(BUNGAMATI_CONFIG.bounds, {
               padding: 50,
               maxZoom: 16,
@@ -370,16 +364,16 @@ const Map = ({
         console.error("Error adding cadastral layers:", error);
       }
     };
-  
+
     // Main execution
     cleanup();
     if (activeFilters.cadastralMap) {
       addCadastralLayers();
     }
-  
+
     // Cleanup on unmount or when dependencies change
     return cleanup;
-  }, [activeFilters.cadastralMap, mapInstance]);  
+  }, [activeFilters.cadastralMap, mapInstance]);
 
   // Watch for changes in ward boundary visibility
   useEffect(() => {
@@ -531,26 +525,31 @@ const Map = ({
         if (!mapInstance.getSource("parcels")) {
           // Fetch GeoJSON data
           fetch(PARCEL_GEOJSON)
-            .then(response => response.json())
-            .then(data => {
+            .then((response) => response.json())
+            .then((data) => {
               // If a land category is selected, filter the features
               let filteredData = { ...data };
               if (activeFilters.landCategory) {
-                filteredData.features = data.features.filter(feature => {
+                filteredData.features = data.features.filter((feature) => {
                   // Map between filter values and GeoJSON property values
                   const landCategoryMap = {
-                    'government': 'सरकारी',
-                    'guthi': 'गुठी',
-                    'non_newar': 'गैर–नेवाः',
-                    'mixed_non_newar': 'गैर–नेवाः÷संयुक्त',
-                    'newar': 'नेवाः',
-                    'mixed_newar': 'नेवाः÷संयुक्त',
-                    'institutional': 'संस्थागत',
-                    'community': 'सामुदायिक'
+                    government: "सरकारी",
+                    guthi: "गुठी",
+                    non_newar: "गैर–नेवाः",
+                    mixed_non_newar: "गैर–नेवाः÷संयुक्त",
+                    newar: "नेवाः",
+                    mixed_newar: "नेवाः÷संयुक्त",
+                    institutional: "संस्थागत",
+                    community: "सामुदायिक",
                   };
 
-                  const mappedCategory = landCategoryMap[activeFilters.landCategory];
-                  return feature.properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनी'] === mappedCategory;
+                  const mappedCategory =
+                    landCategoryMap[activeFilters.landCategory];
+                  return (
+                    feature.properties[
+                      "fasttract_connected_Final with connect — Sheet1_जग्गाधनी"
+                    ] === mappedCategory
+                  );
                 });
               }
 
@@ -568,7 +567,10 @@ const Map = ({
                 paint: {
                   "fill-color": [
                     "match",
-                    ["get", "fasttract_connected_Final with connect — Sheet1_जग्गाधनी"],
+                    [
+                      "get",
+                      "fasttract_connected_Final with connect — Sheet1_जग्गाधनी",
+                    ],
                     "गुठी",
                     "#ff0000", // Bright red for Guthi
                     "गैर–नेवाः",
@@ -614,26 +616,106 @@ const Map = ({
                 const popupContent = `
                   <div>
                     <h3>Parcel Information</h3>
-                    <p>जग्गाधनीको नाम: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनीको नाम'] || 'N/A'}</p>
-                    <p>जग्गाधनीको बाबुको नाम: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाबुको नाम'] || 'N/A'}</p>
-                    <p>जग्गाधनीको बाजेको नाम: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाजेको नाम'] || 'N/A'}</p>
-                    <p>साविक ठेगाना / गा.वि.स.: ${properties['fasttract_connected_Final with connect — Sheet1_साविक ठेगाना÷ गा.वि.स.'] || 'N/A'}</p>
-                    <p>वार्ड नं.: ${properties['fasttract_connected_Final with connect — Sheet1_वार्ड नं.'] || 'N/A'}</p>
-                    <p>सिट नं.: ${properties['fasttract_connected_Final with connect — Sheet1_सिट नं.'] || 'N/A'}</p>
-                    <p>कित्ता नं.: ${properties['fasttract_connected_Final with connect — Sheet1_कित्ता नं.'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल ब.मि.: ${properties['fasttract_connected_Final with connect — Sheet1_ब.मि.'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफल११रो'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१२आ'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफलेपै'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१३दा'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल ब.मि.: ${properties['fasttract_connected_Final with connect — Sheet1_ब.मि._1'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल रो: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१६रो'] || 'N/A'}</p>
-                    <p>अधिग्रहणअधिग्रहम गरिने क्षेत्रफल आ: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१७आ'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल पै: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफलपै'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल दा: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१८।००दा'] || 'N/A'}</p>
-                    <p>कैफियत: ${properties['fasttract_connected_Final with connect — Sheet1_कैफियत'] || 'N/A'}</p>
-                    <p>जग्गाधनी: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनी'] || 'N/A'}</p>
-                    <p>Land Acquisition Notice: ${properties['Copy of Final_with_connect — Sheet1_Land acquisition notice'] || 'N/A'}</p>
+                    <p>जग्गाधनीको नाम: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनीको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनीको बाबुको नाम: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाबुको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनीको बाजेको नाम: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाजेको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>साविक ठेगाना / गा.वि.स.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_साविक ठेगाना÷ गा.वि.स."
+                      ] || "N/A"
+                    }</p>
+                    <p>वार्ड नं.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_वार्ड नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>सिट नं.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_सिट नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>कित्ता नं.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_कित्ता नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल ब.मि.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_ब.मि."
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफल११रो"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१२आ"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफलेपै"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१३दा"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल ब.मि.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_ब.मि._1"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल रो: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१६रो"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहणअधिग्रहम गरिने क्षेत्रफल आ: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१७आ"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल पै: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफलपै"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल दा: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१८।००दा"
+                      ] || "N/A"
+                    }</p>
+                    <p>कैफियत: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_कैफियत"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनी: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनी"
+                      ] || "N/A"
+                    }</p>
+                    <p>Land Acquisition Notice: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet1_Land acquisition notice"
+                      ] || "N/A"
+                    }</p>
                   </div>
                 `;
 
@@ -652,7 +734,7 @@ const Map = ({
                 mapInstance.getCanvas().style.cursor = "";
               });
             })
-            .catch(error => {
+            .catch((error) => {
               console.log("Error fetching or processing parcel data:", error);
             });
         }
@@ -669,169 +751,460 @@ const Map = ({
   }, [parcelLayerVisible, mapInstance, activeFilters.landCategory]);
 
   // Watch for changes in 2019 parcel layer visibility
-useEffect(() => {
-  if (!mapInstance) return;
+  useEffect(() => {
+    if (!mapInstance) return;
 
-  const safeRemove2019ParcelLayers = () => {
-    try {
-      if (mapInstance.getLayer("parcel2019FillLayer")) {
-        mapInstance.removeLayer("parcel2019FillLayer");
+    const safeRemove2019ParcelLayers = () => {
+      try {
+        if (mapInstance.getLayer("parcel2019FillLayer")) {
+          mapInstance.removeLayer("parcel2019FillLayer");
+        }
+        if (mapInstance.getLayer("parcel2019BorderLayer")) {
+          mapInstance.removeLayer("parcel2019BorderLayer");
+        }
+        if (mapInstance.getSource("parcels2019")) {
+          mapInstance.removeSource("parcels2019");
+        }
+      } catch (error) {
+        console.log("Error removing 2019 parcel layers:", error);
       }
-      if (mapInstance.getLayer("parcel2019BorderLayer")) {
-        mapInstance.removeLayer("parcel2019BorderLayer");
-      }
-      if (mapInstance.getSource("parcels2019")) {
-        mapInstance.removeSource("parcels2019");
-      }
-    } catch (error) {
-      console.log("Error removing 2019 parcel layers:", error);
-    }
-  };
+    };
 
-  if (parcelLayer2019Visible) {
-    try {
-      if (!mapInstance.getSource("parcels2019")) {
-        // Fetch GeoJSON data
-        fetch(PARCEL_2019_GEOJSON)
-          .then(response => response.json())
-          .then(data => {
-            // If a land category is selected, filter the features
-            let filteredData = { ...data };
-            if (activeFilters.landCategory) {
-              filteredData.features = data.features.filter(feature => {
-                // Map between filter values and GeoJSON property values
-                // Update this mapping based on your 2019 data structure
-                const landCategoryMap = {
-                  'government': 'सरकारी',
-                  'guthi': 'गुठी',
-                  'non_newar': 'गैर–नेवाः',
-                  'mixed_non_newar': 'गैर–नेवाः÷संयुक्त',
-                  'newar': 'नेवाः',
-                  'mixed_newar': 'नेवाः÷संयुक्त',
-                  'institutional': 'संस्थागत',
-                  'community': 'सामुदायिक'
-                };
+    if (parcelLayer2019Visible) {
+      try {
+        if (!mapInstance.getSource("parcels2019")) {
+          // Fetch GeoJSON data
+          fetch(PARCEL_2019_GEOJSON)
+            .then((response) => response.json())
+            .then((data) => {
+              // If a land category is selected, filter the features
+              let filteredData = { ...data };
+              if (activeFilters.landCategory) {
+                filteredData.features = data.features.filter((feature) => {
+                  // Map between filter values and GeoJSON property values
+                  // Update this mapping based on your 2019 data structure
+                  const landCategoryMap = {
+                    government: "सरकारी",
+                    guthi: "गुठी",
+                    non_newar: "गैर–नेवाः",
+                    mixed_non_newar: "गैर–नेवाः÷संयुक्त",
+                    newar: "नेवाः",
+                    mixed_newar: "नेवाः÷संयुक्त",
+                    institutional: "संस्थागत",
+                    community: "सामुदायिक",
+                  };
 
-                const mappedCategory = landCategoryMap[activeFilters.landCategory];
-                return feature.properties['Copy of Final_with_connect — Sheet4_जग्गाधनी'] === mappedCategory;
+                  const mappedCategory =
+                    landCategoryMap[activeFilters.landCategory];
+                  return (
+                    feature.properties[
+                      "Copy of Final_with_connect — Sheet4_जग्गाधनी"
+                    ] === mappedCategory
+                  );
+                });
+              }
+
+              // Add source with potentially filtered data
+              mapInstance.addSource("parcels2019", {
+                type: "geojson",
+                data: filteredData,
               });
-            }
 
-            // Add source with potentially filtered data
-            mapInstance.addSource("parcels2019", {
-              type: "geojson",
-              data: filteredData,
-            });
+              // Add fill layer for 2019 parcels
+              mapInstance.addLayer({
+                id: "parcel2019FillLayer",
+                type: "fill",
+                source: "parcels2019",
+                paint: {
+                  "fill-color": [
+                    "match",
+                    ["get", "Copy of Final_with_connect — Sheet4_जग्गाधनी"], // Update to match your 2019 property field
+                    "गुठी",
+                    "#ff0000",
+                    "गैर–नेवाः",
+                    "#0000ff",
+                    "गैर–नेवाः÷संयुक्त",
+                    "#87cefa",
+                    "नेवाः",
+                    "#ffd700",
+                    "नेवाः÷संयुक्त",
+                    "#f0e68c",
+                    "संस्थागत",
+                    "#9C27B0",
+                    "सरकारी",
+                    "#32cd32",
+                    "सामुदायिक",
+                    "#795548",
+                    "#d8bfd8",
+                  ],
+                  "fill-opacity": 0.5,
+                },
+              });
 
-            // Add fill layer for 2019 parcels
-            mapInstance.addLayer({
-              id: "parcel2019FillLayer",
-              type: "fill",
-              source: "parcels2019",
-              paint: {
-                "fill-color": [
-                  "match",
-                  ["get", "Copy of Final_with_connect — Sheet4_जग्गाधनी"], // Update to match your 2019 property field
-                  "गुठी",
-                  "#ff0000",
-                  "गैर–नेवाः",
-                  "#0000ff",
-                  "गैर–नेवाः÷संयुक्त",
-                  "#87cefa",
-                  "नेवाः",
-                  "#ffd700",
-                  "नेवाः÷संयुक्त",
-                  "#f0e68c",
-                  "संस्थागत",
-                  "#9C27B0",
-                  "सरकारी",
-                  "#32cd32",
-                  "सामुदायिक",
-                  "#795548",
-                  "#d8bfd8",
-                ],
-                "fill-opacity": 0.5,
-              },
-            });
+              // Add border layer for 2019 parcels with dotted pattern
+              mapInstance.addLayer({
+                id: "parcel2019BorderLayer",
+                type: "line",
+                source: "parcels2019",
+                paint: {
+                  "line-color": "#100c08",
+                  "line-width": 2,
+                  "line-dasharray": [2, 2], // This creates the dotted pattern
+                },
+              });
 
-            // Add border layer for 2019 parcels with dotted pattern
-            mapInstance.addLayer({
-              id: "parcel2019BorderLayer",
-              type: "line",
-              source: "parcels2019",
-              paint: {
-                "line-color": "#100c08",
-                "line-width": 2,
-                "line-dasharray": [2, 2] // This creates the dotted pattern
-              },
-            });
+              // Add click interaction for 2019 parcels
+              mapInstance.on("click", "parcel2019FillLayer", (e) => {
+                if (!e.features.length) return;
 
-            // Add click interaction for 2019 parcels
-            mapInstance.on("click", "parcel2019FillLayer", (e) => {
-              if (!e.features.length) return;
+                const feature = e.features[0];
+                const coordinates = e.lngLat;
 
-              const feature = e.features[0];
-              const coordinates = e.lngLat;
-
-              // Create popup content based on 2019 parcel properties
-              // Update these fields to match your 2019 GeoJSON properties
-              const properties = feature.properties;
-              const popupContent = `
+                // Create popup content based on 2019 parcel properties
+                // Update these fields to match your 2019 GeoJSON properties
+                const properties = feature.properties;
+                const popupContent = `
                 <div>
                   <h3>2019 Parcel Information</h3>
-                  <p>जग्गाधनीको नाम: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनीको नाम'] || 'N/A'}</p>
-                    <p>जग्गाधनीको बाबुको नाम: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनीको बाबुको नाम'] || 'N/A'}</p>
-                    <p>जग्गाधनीको बाजेको नाम: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनीको बाजेको नाम'] || 'N/A'}</p>
-                    <p>साविक ठेगाना / गा.वि.स.: ${properties['Copy of Final_with_connect — Sheet4_साविक ठेगाना÷ गा.वि.स.'] || 'N/A'}</p>
-                    <p>वार्ड नं.: ${properties['Copy of Final_with_connect — Sheet4_वार्ड नं.'] || 'N/A'}</p>
-                    <p>सिट नं.: ${properties['Copy of Final_with_connect — Sheet4_सिट नं.'] || 'N/A'}</p>
-                    <p>कित्ता नं.: ${properties['Copy of Final_with_connect — Sheet4_कित्ता नं.'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल ब.मि.: ${properties['Copy of Final_with_connect — Sheet4_ब.मि.'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफल११रो'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफले१२आ'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफलेपै'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफले१३दा'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल ब.मि.: ${properties['Copy of Final_with_connect — Sheet4_ब.मि._1'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल रो: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१६रो'] || 'N/A'}</p>
-                    <p>अधिग्रहणअधिग्रहम गरिने क्षेत्रफल आ: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१७आ'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल पै: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफलपै'] || 'N/A'}</p>
-                    <p>अधिग्रहण गरिने क्षेत्रफल दा: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१८।००दा'] || 'N/A'}</p>
-                    <p>कैफियत: ${properties['Copy of Final_with_connect — Sheet4_कैफियत'] || 'N/A'}</p>
-                    <p>जग्गाधनी: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनी'] || 'N/A'}</p>
-                    <p>Land Acquisition Notice: ${properties['Copy of Final_with_connect — Sheet4_Land acquisition notice'] || 'N/A'}</p>
+                  <p>जग्गाधनीको नाम: ${
+                    properties[
+                      "Copy of Final_with_connect — Sheet4_जग्गाधनीको नाम"
+                    ] || "N/A"
+                  }</p>
+                    <p>जग्गाधनीको बाबुको नाम: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_जग्गाधनीको बाबुको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनीको बाजेको नाम: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_जग्गाधनीको बाजेको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>साविक ठेगाना / गा.वि.स.: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_साविक ठेगाना÷ गा.वि.स."
+                      ] || "N/A"
+                    }</p>
+                    <p>वार्ड नं.: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_वार्ड नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>सिट नं.: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_सिट नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>कित्ता नं.: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_कित्ता नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल ब.मि.: ${
+                      properties["Copy of Final_with_connect — Sheet4_ब.मि."] ||
+                      "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफल११रो"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफले१२आ"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफलेपै"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफले१३दा"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल ब.मि.: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_ब.मि._1"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल रो: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१६रो"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहणअधिग्रहम गरिने क्षेत्रफल आ: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१७आ"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल पै: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफलपै"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल दा: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१८।००दा"
+                      ] || "N/A"
+                    }</p>
+                    <p>कैफियत: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_कैफियत"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनी: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_जग्गाधनी"
+                      ] || "N/A"
+                    }</p>
+                    <p>Land Acquisition Notice: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet4_Land acquisition notice"
+                      ] || "N/A"
+                    }</p>
                 </div>
               `;
 
-              new maplibre.Popup()
-                .setLngLat(coordinates)
-                .setHTML(popupContent)
-                .addTo(mapInstance);
-            });
+                new maplibre.Popup()
+                  .setLngLat(coordinates)
+                  .setHTML(popupContent)
+                  .addTo(mapInstance);
+              });
 
-            // Change cursor on hover
-            mapInstance.on("mouseenter", "parcel2019FillLayer", () => {
-              mapInstance.getCanvas().style.cursor = "pointer";
-            });
+              // Change cursor on hover
+              mapInstance.on("mouseenter", "parcel2019FillLayer", () => {
+                mapInstance.getCanvas().style.cursor = "pointer";
+              });
 
-            mapInstance.on("mouseleave", "parcel2019FillLayer", () => {
-              mapInstance.getCanvas().style.cursor = "";
+              mapInstance.on("mouseleave", "parcel2019FillLayer", () => {
+                mapInstance.getCanvas().style.cursor = "";
+              });
+            })
+            .catch((error) => {
+              console.log(
+                "Error fetching or processing 2019 parcel data:",
+                error
+              );
             });
-          })
-          .catch(error => {
-            console.log("Error fetching or processing 2019 parcel data:", error);
-          });
+        }
+      } catch (error) {
+        console.log("Error adding 2019 parcel layers:", error);
       }
-    } catch (error) {
-      console.log("Error adding 2019 parcel layers:", error);
+    } else {
+      safeRemove2019ParcelLayers();
     }
-  } else {
-    safeRemove2019ParcelLayers();
-  }
 
-  return () => {
-    safeRemove2019ParcelLayers();
-  };
-}, [parcelLayer2019Visible, mapInstance, activeFilters.landCategory]);
+    return () => {
+      safeRemove2019ParcelLayers();
+    };
+  }, [parcelLayer2019Visible, mapInstance, activeFilters.landCategory]);
+
+  // Watch for changes in null year parcel visibility
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    const safeRemoveNullYearLayers = () => {
+      try {
+        if (mapInstance.getLayer("nullYearFillLayer")) {
+          mapInstance.removeLayer("nullYearFillLayer");
+        }
+        if (mapInstance.getLayer("nullYearBorderLayer")) {
+          mapInstance.removeLayer("nullYearBorderLayer");
+        }
+        if (mapInstance.getSource("nullYearParcels")) {
+          mapInstance.removeSource("nullYearParcels");
+        }
+      } catch (error) {
+        console.log("Error removing null year parcel layers:", error);
+      }
+    };
+
+    if (nullYearParcelVisible) {
+      try {
+        if (!mapInstance.getSource("nullYearParcels")) {
+          // Fetch GeoJSON data
+          fetch(NULL_YEAR_GEOJSON)
+            .then((response) => response.json())
+            .then((data) => {
+              // Add source
+              mapInstance.addSource("nullYearParcels", {
+                type: "geojson",
+                data: data,
+              });
+
+              // Add fill layer
+              mapInstance.addLayer({
+                id: "nullYearFillLayer",
+                type: "fill",
+                source: "nullYearParcels",
+                paint: {
+                  "fill-color": "#d3d3d3", // Gray color
+                  "fill-opacity": 0.5,
+                },
+              });
+
+              // Add border layer
+              mapInstance.addLayer({
+                id: "nullYearBorderLayer",
+                type: "line",
+                source: "nullYearParcels",
+                paint: {
+                  "line-color": "#666666",
+                  "line-width": 0.5,
+                },
+              });
+
+              // Add click interaction
+              mapInstance.on("click", "nullYearFillLayer", (e) => {
+                if (!e.features.length) return;
+
+                const feature = e.features[0];
+                const coordinates = e.lngLat;
+
+                // Create popup content based on available properties
+                const properties = feature.properties;
+                const popupContent = `
+                <div>
+                  <h3>Parcel Information (Not Connected)</h3>
+                  <p>जग्गाधनीको नाम: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनीको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनीको बाबुको नाम: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाबुको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनीको बाजेको नाम: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाजेको नाम"
+                      ] || "N/A"
+                    }</p>
+                    <p>साविक ठेगाना / गा.वि.स.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_साविक ठेगाना÷ गा.वि.स."
+                      ] || "N/A"
+                    }</p>
+                    <p>वार्ड नं.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_वार्ड नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>सिट नं.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_सिट नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>कित्ता नं.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_कित्ता नं."
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल ब.मि.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_ब.मि."
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफल११रो"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१२आ"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफलेपै"
+                      ] || "N/A"
+                    }</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१३दा"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल ब.मि.: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_ब.मि._1"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल रो: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१६रो"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहणअधिग्रहम गरिने क्षेत्रफल आ: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१७आ"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल पै: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफलपै"
+                      ] || "N/A"
+                    }</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल दा: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१८।००दा"
+                      ] || "N/A"
+                    }</p>
+                    <p>कैफियत: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_कैफियत"
+                      ] || "N/A"
+                    }</p>
+                    <p>जग्गाधनी: ${
+                      properties[
+                        "fasttract_connected_Final with connect — Sheet1_जग्गाधनी"
+                      ] || "N/A"
+                    }</p>
+                    <p>Land Acquisition Notice: ${
+                      properties[
+                        "Copy of Final_with_connect — Sheet1_Land acquisition notice"
+                      ] || "N/A"
+                    }</p>
+                </div>
+              `;
+
+                new maplibre.Popup()
+                  .setLngLat(coordinates)
+                  .setHTML(popupContent)
+                  .addTo(mapInstance);
+              });
+
+              // Change cursor on hover
+              mapInstance.on("mouseenter", "nullYearFillLayer", () => {
+                mapInstance.getCanvas().style.cursor = "pointer";
+              });
+
+              mapInstance.on("mouseleave", "nullYearFillLayer", () => {
+                mapInstance.getCanvas().style.cursor = "";
+              });
+            })
+            .catch((error) => {
+              console.log(
+                "Error fetching or processing null year parcel data:",
+                error
+              );
+            });
+        }
+      } catch (error) {
+        console.log("Error adding null year parcel layers:", error);
+      }
+    } else {
+      safeRemoveNullYearLayers();
+    }
+
+    return () => {
+      safeRemoveNullYearLayers();
+    };
+  }, [nullYearParcelVisible, mapInstance]);
 
   // Watch for changes in building footprint visibility
   useEffect(() => {
@@ -974,7 +1347,7 @@ useEffect(() => {
   // Watch for changes in historical places visibility
   useEffect(() => {
     if (!mapInstance) return;
-  
+
     const safeRemoveHistoricalPlacesLayers = () => {
       try {
         if (mapInstance.getLayer("historicalPlacesSymbol")) {
@@ -990,7 +1363,7 @@ useEffect(() => {
         console.log("Error removing historical places layers:", error);
       }
     };
-  
+
     if (historicalPlacesVisible) {
       // Attempt to fetch and add the historical places layer
       const fetchHistoricalPlaces = async () => {
@@ -998,14 +1371,14 @@ useEffect(() => {
           const response = await fetch(HISTORICAL_PLACES_GEOJSON);
           const data = await response.json();
           console.log("Historical Places Data:", data); // Log the data to verify
-  
+
           // Check if the source has already been added
           if (!mapInstance.getSource("historicalPlaces")) {
             mapInstance.addSource("historicalPlaces", {
               type: "geojson",
               data: data,
             });
-  
+
             // Add circle layer for historical places
             mapInstance.addLayer({
               id: "historicalPlacesSymbol",
@@ -1015,13 +1388,13 @@ useEffect(() => {
                 "circle-radius": 6,
                 "circle-color": "#FF6B6B", // Soft red color
                 "circle-stroke-width": 2,
-                "circle-stroke-color": "#D32F2F" // Darker red outline
+                "circle-stroke-color": "#D32F2F", // Darker red outline
               },
               layout: {
-                "visibility": "visible"
-              }
+                visibility: "visible",
+              },
             });
-  
+
             // Add text labels for historical places
             mapInstance.addLayer({
               id: "historicalPlacesLabels",
@@ -1033,47 +1406,47 @@ useEffect(() => {
                 "text-offset": [0, 1.25],
                 "text-anchor": "top",
                 "text-size": 12,
-                "text-allow-overlap": false
+                "text-allow-overlap": false,
               },
               paint: {
                 "text-color": "#000000",
                 "text-halo-color": "#FFFFFF",
-                "text-halo-width": 2
-              }
+                "text-halo-width": 2,
+              },
             });
-  
+
             // Add click interaction for historical places
             mapInstance.on("click", "historicalPlacesSymbol", (e) => {
               if (!e.features.length) return;
-  
+
               const feature = e.features[0];
               const coordinates = e.lngLat;
-  
+
               // Create popup content based on historical place properties
               const properties = feature.properties;
               const popupContent = `
                 <div>
                   <h3>Historical Place Information</h3>
-                  <p>Name: ${properties.Name || 'N/A'}</p>
-                  <p>Description: ${properties.description || 'N/A'}</p>
+                  <p>Name: ${properties.Name || "N/A"}</p>
+                  <p>Description: ${properties.description || "N/A"}</p>
                 </div>
               `;
-  
+
               new maplibre.Popup()
                 .setLngLat(coordinates)
                 .setHTML(popupContent)
                 .addTo(mapInstance);
             });
-  
+
             // Change cursor on hover
             mapInstance.on("mouseenter", "historicalPlacesSymbol", () => {
               mapInstance.getCanvas().style.cursor = "pointer";
             });
-  
+
             mapInstance.on("mouseleave", "historicalPlacesSymbol", () => {
               mapInstance.getCanvas().style.cursor = "";
             });
-  
+
             // If data is empty or no points, log a warning
             if (!data.features || data.features.length === 0) {
               console.warn("No historical places found in the GeoJSON file");
@@ -1086,12 +1459,12 @@ useEffect(() => {
           console.error("Error fetching historical places data:", error);
         }
       };
-  
+
       fetchHistoricalPlaces();
     } else {
       safeRemoveHistoricalPlacesLayers();
     }
-  
+
     return () => {
       safeRemoveHistoricalPlacesLayers();
     };

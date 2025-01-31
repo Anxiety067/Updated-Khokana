@@ -13,6 +13,7 @@ const Statistics = ({ vectorLayers, onVectorLayerChange }) => {
     { name: "Institutional", value: 40 },
     { name: "Communal", value: 1 },
     { name: "Ownership Unknown", value: 182 },
+    { name: "Unconnected Parcel", value: 0 },
   ];
 
   const COLORS = [
@@ -25,6 +26,7 @@ const Statistics = ({ vectorLayers, onVectorLayerChange }) => {
     "#9C27B0",
     "#795548",
     "#d8bfd8",
+    "#d3d3d3"
   ];
 
   const renderCustomizedLabel = ({
@@ -123,6 +125,16 @@ const Statistics = ({ vectorLayers, onVectorLayerChange }) => {
                 <label htmlFor="parcel-layer-2019">
                   Land parcels under 2019 acquisition notice
                 </label>
+              </div>
+
+              <div className="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="nullYearParcel"
+                  checked={vectorLayers.nullYearParcel}
+                  onChange={() => onVectorLayerChange("nullYearParcel")}
+                />
+                <label htmlFor="nullYearParcel">Unconnected Parcels with Excel Data</label>
               </div>
 
               <div className="checkbox-item">
